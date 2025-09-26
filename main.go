@@ -1,62 +1,162 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/joho/godotenv"
 )
 
-type Todo struct {
-	ID        int    `json:"id"`
-	Completed bool   `json:"completed"`
-	Body      string `json:"body"`
+type Professor struct {
+	ID                    int     `json:"id"`
+	Name                  string  `json:"name"`
+	Department            string  `json:"department"`
+	Campus                string  `json:"campus"`
+	University            string  `json:"university"`
+	AverageRating         float64 `json:"average_rating"`
+	ReviewCount           int     `json:"review_count"`
+	AverageDifficulty     float64 `json:"average_difficulty"`
+	WouldTakeAgainPercent int     `json:"would_take_again_percent"`
 }
 
+// SupabaseClient holds the configuration for Supabase API calls
+type SupabaseClient struct {
+	URL    string
+	APIKey string
+}
+
+var supabase *SupabaseClient
+
 func main() {
-	fmt.Println("Hello Kaif, World!")
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
+	// Initialize Supabase client
+	supabase = &SupabaseClient{
+		URL:    os.Getenv("SUPABASE_URL"),
+		APIKey: os.Getenv("SUPABASE_ANON_KEY"),
+	}
+
+	if supabase.URL == "" || supabase.APIKey == "" {
+		log.Fatal("SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file")
+	}
+
+	log.Printf("✅ Connected to Supabase: %s", supabase.URL)
+
 	app := fiber.New()
 
-	todos := []Todo{}
+	// CORS for your React app
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:5173", // Your Vite dev server
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 
+	// API routes
+	app.Get("/api/professors", getProfessors)
+	app.Get("/api/professors/:id", getProfessor)
+
+	// Your existing routes
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.Status(200).JSON(fiber.Map{"msg": "works!!"})
+		return c.JSON(fiber.Map{"message": "Hello World"})
 	})
 
-	//Create TO-DO
-	app.Post("/api/todo", func(c *fiber.Ctx) error {
-		todo := &Todo{}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "4000"
+	}
 
-		if err := c.BodyParser(todo); err != nil {
-			fmt.Printf("BodyParser error: %v\n", err)
-			return c.Status(422).JSON(fiber.Map{"error": "Failed to parse JSON", "details": err.Error()})
-		}
+	log.Printf("Server starting on port %s", port)
+	log.Fatal(app.Listen(":" + port))
+}
 
-		if todo.Body == "" {
-			return c.Status(400).JSON(fiber.Map{"error": "Body is required"})
-		}
+func getProfessors(c *fiber.Ctx) error {
+	campus := c.Query("campus", "pilani") // Default to pilani
 
-		todo.ID = len(todos) + 1
-		todos = append(todos, *todo)
+	// Make request to Supabase REST API
+	url := fmt.Sprintf("%s/rest/v1/professor?campus=eq.%s&order=average_rating.desc", supabase.URL, campus)
 
-		return c.Status(201).JSON(todo)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to create request"})
+	}
 
-	})
+	req.Header.Set("apikey", supabase.APIKey)
+	req.Header.Set("Authorization", "Bearer "+supabase.APIKey)
 
-	//Update TODO
-	app.Patch("api/todos/:id", func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		for i, todo := range todos {
-			if fmt.Sprint(todo.ID) == id {
-				todos[i].Completed = true
-				return c.Status(200).JSON(todos[i])
-			}
-		}
-		return c.Status(404).JSON(fiber.Map{"error": "todo not found"})
-	})
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Supabase API error: %v", err)
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch professors"})
+	}
+	defer resp.Body.Close()
 
-	//DELETE
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to read response"})
+	}
 
-	app.Delete("api/todos/:id")
-	log.Fatal(app.Listen(":4000"))
+	if resp.StatusCode != 200 {
+		log.Printf("Supabase API returned status %d: %s", resp.StatusCode, string(body))
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch professors"})
+	}
+
+	var professors []Professor
+	if err := json.Unmarshal(body, &professors); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to parse response"})
+	}
+
+	return c.JSON(professors)
+}
+
+func getProfessor(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	// Make request to Supabase REST API
+	url := fmt.Sprintf("%s/rest/v1/professor?id=eq.%s", supabase.URL, id)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to create request"})
+	}
+
+	req.Header.Set("apikey", supabase.APIKey)
+	req.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Supabase API error: %v", err)
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch professor"})
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to read response"})
+	}
+
+	if resp.StatusCode != 200 {
+		log.Printf("Supabase API returned status %d: %s", resp.StatusCode, string(body))
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch professor"})
+	}
+
+	var professors []Professor
+	if err := json.Unmarshal(body, &professors); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to parse response"})
+	}
+
+	if len(professors) == 0 {
+		return c.Status(404).JSON(fiber.Map{"error": "Professor not found"})
+	}
+
+	return c.JSON(professors[0])
 }
