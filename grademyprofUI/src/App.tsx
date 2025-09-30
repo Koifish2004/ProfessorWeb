@@ -128,17 +128,18 @@ function App() {
   return (
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: 'Doto, monospace' }}>
       {/* Header */}
-      <div className="text-center py-12 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <h1 className="text-5xl font-extrabold mb-4">Grade My Prof</h1>
-        <p className="text-xl text-gray-300">Find the best professors at BITS</p>
+      <div className="text-center py-8">
+        <h1 className="text-4xl font-black mb-2" style={{ fontFamily: 'Doto, monospace', fontWeight: 900 }}>Grade My Prof</h1>
+        <p className="text-lg text-gray-300">Find the best professors at BITS</p>
       </div>
 
       {/* Campus Selection */}
-      <div className="flex justify-center gap-4 py-8 px-8">
+      <div className="flex justify-center gap-4 py-4 px-8">
         <Button 
           variant={activeCampus === 'pilani' ? 'default' : 'secondary'} 
           onClick={showPilaniProfessors}
           disabled={loading}
+          className={activeCampus === 'pilani' ? '' : 'bg-gray-700 text-white hover:bg-gray-600'}
         >
           {loading && activeCampus === 'pilani' ? 'Loading...' : 'Pilani'}
         </Button>
@@ -146,6 +147,7 @@ function App() {
           variant={activeCampus === 'goa' ? 'default' : 'secondary'} 
           onClick={showGoaProfessors}
           disabled={loading}
+          className={activeCampus === 'goa' ? '' : 'bg-gray-700 text-white hover:bg-gray-600'}
         >
           {loading && activeCampus === 'goa' ? 'Loading...' : 'Goa'}
         </Button>
@@ -153,6 +155,7 @@ function App() {
           variant={activeCampus === 'hyderabad' ? 'default' : 'secondary'} 
           onClick={showHyderabadProfessors}
           disabled={loading}
+          className={activeCampus === 'hyderabad' ? '' : 'bg-gray-700 text-white hover:bg-gray-600'}
         >
           {loading && activeCampus === 'hyderabad' ? 'Loading...' : 'Hyderabad'}
         </Button>
@@ -217,13 +220,13 @@ function App() {
           {professors.map((professor) => (
             <Card 
               key={professor.id} 
-              className="bg-gray-900 border-gray-700 cursor-pointer hover:bg-gray-800 transition-colors"
+              className="bg-gray-800 border-gray-600 cursor-pointer hover:bg-gray-700 transition-colors"
               onClick={() => handleProfessorClick(professor)}
             >
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">{professor.name}</CardTitle>
-                <p className="text-gray-400 text-sm">{professor.department}</p>
-                <p className="text-gray-500 text-xs">{professor.university}</p>
+                <CardTitle className="text-white text-lg font-bold">{professor.name}</CardTitle>
+                <p className="text-gray-300 text-sm">{professor.department}</p>
+                <p className="text-gray-400 text-xs">{professor.university}</p>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center mb-2">
@@ -231,12 +234,12 @@ function App() {
                     <Badge variant="secondary" className="bg-blue-600 text-white">
                       ★ {professor.average_rating.toFixed(1)}
                     </Badge>
-                    <span className="text-gray-400 text-sm">({professor.review_count} reviews)</span>
+                    <span className="text-gray-300 text-sm">({professor.review_count} reviews)</span>
                   </div>
                 </div>
-                <div className="flex justify-between text-sm text-gray-400">
+                <div className="flex justify-between text-sm text-gray-300">
                   <span>Difficulty: {professor.average_difficulty.toFixed(1)}/5</span>
-                  <span>{professor.would_take_again_percent}% would take again</span>
+                  <span className="text-green-400">{professor.would_take_again_percent}% would take again</span>
                 </div>
               </CardContent>
             </Card>
@@ -247,10 +250,10 @@ function App() {
       {/* Selected Professor Details */}
       {selectedProfessor && !showReviewForm && (
         <div className="max-w-4xl mx-auto px-8 mt-8">
-          <Card className="bg-gray-900 border-gray-700">
+          <Card className="bg-gray-800 border-gray-600">
             <CardHeader>
-              <CardTitle className="text-white text-xl">{selectedProfessor.name}</CardTitle>
-              <p className="text-gray-400">{selectedProfessor.department} - {selectedProfessor.university}</p>
+              <CardTitle className="text-white text-xl font-bold">{selectedProfessor.name}</CardTitle>
+              <p className="text-gray-300">{selectedProfessor.department} - {selectedProfessor.university}</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -258,18 +261,18 @@ function App() {
                   <Badge variant="secondary" className="bg-blue-600 text-white text-lg">
                     ★ {selectedProfessor.average_rating.toFixed(1)}
                   </Badge>
-                  <p className="text-gray-400 text-sm mt-1">Overall Rating</p>
+                  <p className="text-gray-300 text-sm mt-1">Overall Rating</p>
                 </div>
                 <div className="text-center">
-                  <Badge variant="outline" className="text-lg">
+                  <Badge variant="outline" className="text-lg border-gray-500 text-white">
                     {selectedProfessor.average_difficulty.toFixed(1)}/5
                   </Badge>
-                  <p className="text-gray-400 text-sm mt-1">Difficulty</p>
+                  <p className="text-gray-300 text-sm mt-1">Difficulty</p>
                 </div>
               </div>
               <div className="text-center mb-4">
-                <p className="text-lg text-white">{selectedProfessor.would_take_again_percent}% would take again</p>
-                <p className="text-gray-400 text-sm">Based on {selectedProfessor.review_count} reviews</p>
+                <p className="text-lg text-green-400 font-semibold">{selectedProfessor.would_take_again_percent}% would take again</p>
+                <p className="text-gray-300 text-sm">Based on {selectedProfessor.review_count} reviews</p>
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -296,7 +299,7 @@ function App() {
               Reviews ({reviews.length})
             </h3>
             {loadingReviews ? (
-              <div className="text-center text-gray-400 py-8">
+              <div className="text-center text-gray-300 py-8">
                 Loading reviews...
               </div>
             ) : reviews.length > 0 ? (
@@ -306,7 +309,7 @@ function App() {
                 ))}
               </div>
             ) : (
-              <div className="text-center text-gray-400 py-8">
+              <div className="text-center text-gray-300 py-8">
                 <p>No reviews yet. Be the first to review this professor!</p>
               </div>
             )}
