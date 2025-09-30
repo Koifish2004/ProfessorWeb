@@ -1,7 +1,9 @@
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "./components/ui/button"
+import { Input } from "./components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card"
+import { Badge } from "./components/ui/badge"
+import { ReviewForm } from "./components/reviews/review-form"
+import { ReviewCard } from "./components/reviews/review-card"
 import { useState, useEffect } from "react"
 
 interface Professor {
@@ -16,6 +18,18 @@ interface Professor {
   would_take_again_percent: number
 }
 
+interface Review {
+  id: number
+  professor_id: number
+  student_name: string
+  rating: number
+  difficulty: number
+  would_take_again: boolean
+  course: string
+  comment: string
+  created_at: string
+}
+
 // API Configuration
 const API_BASE_URL = 'http://localhost:4000/api';
 
@@ -25,6 +39,9 @@ function App() {
   const [activeCampus, setActiveCampus] = useState<'pilani' | 'goa' | 'hyderabad'>('pilani')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
 
   // Fetch professors from API
   const fetchProfessors = async (campus: string) => {
@@ -43,6 +60,24 @@ function App() {
       setProfessors([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fetch reviews for a specific professor
+  const fetchReviews = async (professorId: number) => {
+    setLoadingReviews(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/professors/${professorId}/reviews`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      setReviews(data)
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err)
+      setReviews([])
+    } finally {
+      setLoadingReviews(false)
     }
   }
 
@@ -72,6 +107,16 @@ function App() {
 
   const handleProfessorClick = (professor: Professor) => {
     setSelectedProfessor(professor)
+    setShowReviewForm(false)
+    fetchReviews(professor.id)
+  }
+
+  const handleReviewSubmitted = () => {
+    setShowReviewForm(false)
+    if (selectedProfessor) {
+      fetchReviews(selectedProfessor.id)
+      fetchProfessors(activeCampus) // Refresh professor list to update stats
+    }
   }
   return (
     <div className="min-h-screen bg-black text-white">
@@ -192,8 +237,8 @@ function App() {
       </div>
 
       {/* Selected Professor Details */}
-      {selectedProfessor && (
-        <div className="max-w-2xl mx-auto px-8 mt-8">
+      {selectedProfessor && !showReviewForm && (
+        <div className="max-w-4xl mx-auto px-8 mt-8">
           <Card className="bg-gray-900 border-gray-700">
             <CardHeader>
               <CardTitle className="text-white text-xl">{selectedProfessor.name}</CardTitle>
@@ -214,19 +259,62 @@ function App() {
                   <p className="text-gray-400 text-sm mt-1">Difficulty</p>
                 </div>
               </div>
-              <div className="text-center">
+              <div className="text-center mb-4">
                 <p className="text-lg text-white">{selectedProfessor.would_take_again_percent}% would take again</p>
                 <p className="text-gray-400 text-sm">Based on {selectedProfessor.review_count} reviews</p>
               </div>
-              <Button 
-                variant="outline" 
-                className="w-full mt-4"
-                onClick={() => setSelectedProfessor(null)}
-              >
-                Close Details
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="default" 
+                  className="flex-1"
+                  onClick={() => setShowReviewForm(true)}
+                >
+                  Write a Review
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => setSelectedProfessor(null)}
+                >
+                  Close Details
+                </Button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Reviews Section */}
+          <div className="mt-8">
+            <h3 className="text-xl font-bold text-white mb-4">
+              Reviews ({reviews.length})
+            </h3>
+            {loadingReviews ? (
+              <div className="text-center text-gray-400 py-8">
+                Loading reviews...
+              </div>
+            ) : reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <ReviewCard key={review.id} review={review} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                <p>No reviews yet. Be the first to review this professor!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Review Form */}
+      {selectedProfessor && showReviewForm && (
+        <div className="max-w-4xl mx-auto px-8 mt-8">
+          <ReviewForm
+            professorId={selectedProfessor.id}
+            professorName={selectedProfessor.name}
+            onReviewSubmitted={handleReviewSubmitted}
+            onCancel={() => setShowReviewForm(false)}
+          />
         </div>
       )}
     </div>
