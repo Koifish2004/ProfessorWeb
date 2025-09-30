@@ -291,5 +291,108 @@ func createReview(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "No review returned"})
 	}
 
+	// Update professor statistics after creating review
+	go updateProfessorStats(professorID)
+
 	return c.JSON(createdReview[0])
+}
+
+func updateProfessorStats(professorID string) {
+	// Get all reviews for this professor
+	url := fmt.Sprintf("%s/rest/v1/reviews?professor_id=eq.%s", supabase.URL, professorID)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("Failed to create request for stats update: %v", err)
+		return
+	}
+
+	req.Header.Set("apikey", supabase.APIKey)
+	req.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to fetch reviews for stats: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read reviews response: %v", err)
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		log.Printf("Failed to fetch reviews for stats, status %d: %s", resp.StatusCode, string(body))
+		return
+	}
+
+	var reviews []Review
+	if err := json.Unmarshal(body, &reviews); err != nil {
+		log.Printf("Failed to parse reviews for stats: %v", err)
+		return
+	}
+
+	if len(reviews) == 0 {
+		return
+	}
+
+	// Calculate new statistics
+	var totalRating, totalDifficulty float64
+	var wouldTakeAgainCount int
+
+	for _, review := range reviews {
+		totalRating += review.Rating
+		totalDifficulty += review.Difficulty
+		if review.WouldTakeAgain {
+			wouldTakeAgainCount++
+		}
+	}
+
+	reviewCount := len(reviews)
+	averageRating := totalRating / float64(reviewCount)
+	averageDifficulty := totalDifficulty / float64(reviewCount)
+	wouldTakeAgainPercent := int((float64(wouldTakeAgainCount) / float64(reviewCount)) * 100)
+
+	// Update professor with new stats
+	updateData := map[string]interface{}{
+		"average_rating":           averageRating,
+		"review_count":             reviewCount,
+		"average_difficulty":       averageDifficulty,
+		"would_take_again_percent": wouldTakeAgainPercent,
+	}
+
+	jsonData, err := json.Marshal(updateData)
+	if err != nil {
+		log.Printf("Failed to marshal update data: %v", err)
+		return
+	}
+
+	updateURL := fmt.Sprintf("%s/rest/v1/professor?id=eq.%s", supabase.URL, professorID)
+	updateReq, err := http.NewRequest("PATCH", updateURL, strings.NewReader(string(jsonData)))
+	if err != nil {
+		log.Printf("Failed to create update request: %v", err)
+		return
+	}
+
+	updateReq.Header.Set("apikey", supabase.APIKey)
+	updateReq.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+	updateReq.Header.Set("Content-Type", "application/json")
+
+	updateResp, err := client.Do(updateReq)
+	if err != nil {
+		log.Printf("Failed to update professor stats: %v", err)
+		return
+	}
+	defer updateResp.Body.Close()
+
+	if updateResp.StatusCode != 204 {
+		updateBody, _ := io.ReadAll(updateResp.Body)
+		log.Printf("Failed to update professor stats, status %d: %s", updateResp.StatusCode, string(updateBody))
+		return
+	}
+
+	log.Printf("✅ Updated professor %s stats: avg_rating=%.2f, reviews=%d", professorID, averageRating, reviewCount)
 }

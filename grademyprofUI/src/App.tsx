@@ -31,7 +31,7 @@ interface Review {
 }
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL = 'http://localhost:4000/api'
 
 function App() {
   const [professors, setProfessors] = useState<Professor[]>([])
@@ -83,27 +83,25 @@ function App() {
 
   // Campus button handlers
   const showPilaniProfessors = async () => {
-    await fetchProfessors('pilani')
     setActiveCampus('pilani')
     setSelectedProfessor(null)
+    setShowReviewForm(false)
+    await fetchProfessors('pilani')
   }
 
   const showGoaProfessors = async () => {
-    await fetchProfessors('goa')
     setActiveCampus('goa')
     setSelectedProfessor(null)
+    setShowReviewForm(false)
+    await fetchProfessors('goa')
   }
 
   const showHyderabadProfessors = async () => {
-    await fetchProfessors('hyderabad')
     setActiveCampus('hyderabad')
     setSelectedProfessor(null)
+    setShowReviewForm(false)
+    await fetchProfessors('hyderabad')
   }
-
-  // Load initial data when component mounts
-  useEffect(() => {
-    showPilaniProfessors()
-  }, [])
 
   const handleProfessorClick = (professor: Professor) => {
     setSelectedProfessor(professor)
@@ -111,22 +109,32 @@ function App() {
     fetchReviews(professor.id)
   }
 
-  const handleReviewSubmitted = () => {
+  const handleReviewSubmitted = async () => {
     setShowReviewForm(false)
     if (selectedProfessor) {
-      fetchReviews(selectedProfessor.id)
-      fetchProfessors(activeCampus) // Refresh professor list to update stats
+      // Wait a moment for backend to update professor stats
+      setTimeout(async () => {
+        await fetchReviews(selectedProfessor.id)
+        await fetchProfessors(activeCampus) // Refresh professor list with updated stats
+      }, 1000)
     }
   }
+
+  // Load professors on component mount
+  useEffect(() => {
+    fetchProfessors(activeCampus)
+  }, [])
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Title */}
-      <div className="flex justify-center pt-8">
-        <h1 className="text-4xl font-bold text-white" style={{ fontFamily: 'Doto, monospace' }}>GradeYourProfessor</h1>
+    <div className="min-h-screen bg-black text-white" style={{ fontFamily: 'Doto, monospace' }}>
+      {/* Header */}
+      <div className="text-center py-12 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <h1 className="text-5xl font-extrabold mb-4">Grade My Prof</h1>
+        <p className="text-xl text-gray-300">Find the best professors at BITS</p>
       </div>
-      
-      {/* Three Campus Buttons */}
-      <div className="flex justify-center items-center gap-4 mt-8">
+
+      {/* Campus Selection */}
+      <div className="flex justify-center gap-4 py-8 px-8">
         <Button 
           variant={activeCampus === 'pilani' ? 'default' : 'secondary'} 
           onClick={showPilaniProfessors}
