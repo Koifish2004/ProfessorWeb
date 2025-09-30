@@ -153,6 +153,21 @@ function App() {
           Find the best professors at BITS
         </p>
       </div>
+      <div className="absolute top-4 right-4">
+        {user ? (
+          <Button onClick={() => setUser(null)} variant="outline">
+            Logout
+          </Button>
+        ) : (
+          <Button
+            onClick={() =>
+              setUser({ email: "f2022xxxx@pilani.bits-pilani.ac.in" })
+            }
+          >
+            Login
+          </Button>
+        )}
+      </div>
 
       {/* Campus Selection */}
       <div className="flex justify-center gap-4 py-4 px-8">
