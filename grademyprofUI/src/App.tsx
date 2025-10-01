@@ -5,6 +5,9 @@ import { Badge } from "./components/ui/badge";
 import { ReviewForm } from "./components/reviews/review-form";
 import { ReviewCard } from "./components/reviews/review-card";
 import { useState, useEffect } from "react";
+import { validateUniversityEmail } from "./lib/auth";
+import { signInWithPopup, signOut } from "firebase/auth";
+import { auth, googleProvider } from "./firebase/config"; // Make sure this path matches your Firebase config file
 
 interface Professor {
   id: number;
@@ -46,7 +49,48 @@ function App() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{
+    email: string;
+    name: string | null;
+    campus: string;
+  } | null>(null);
+
+  //Add authentication logic here
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const userEmail = result.user.email;
+
+      if (userEmail) {
+        const val = validateUniversityEmail(userEmail);
+
+        if (val.isValid) {
+          setUser({
+            email: userEmail,
+            name: result.user.displayName,
+            campus: val.campus ?? "",
+          });
+        } else {
+          alert("Please use your university email to login");
+          await signOut(auth);
+        }
+      }
+    } catch (error) {
+      console.error("Login failed", error);
+    }
+  };
+
+  //handle logout
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   // Fetch professors from API
   const fetchProfessors = async (campus: string) => {
@@ -153,21 +197,16 @@ function App() {
           Find the best professors at BITS
         </p>
       </div>
-      <div className="absolute top-4 right-4">
-        {user ? (
-          <Button onClick={() => setUser(null)} variant="outline">
+      {user ? (
+        <div className="flex items-center gap-2">
+          <span>Welcome, {user.name}!</span>
+          <Button onClick={handleLogout} variant="outline">
             Logout
           </Button>
-        ) : (
-          <Button
-            onClick={() =>
-              setUser({ email: "f2022xxxx@pilani.bits-pilani.ac.in" })
-            }
-          >
-            Login
-          </Button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <Button onClick={handleGoogleLogin}>Login with Google</Button>
+      )}
 
       {/* Campus Selection */}
       <div className="flex justify-center gap-4 py-4 px-8">
