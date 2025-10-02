@@ -1,70 +1,97 @@
-import { useState } from "react"
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { Textarea } from "../ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
-import { Label } from "../ui/label"
-import { Switch } from "../ui/switch"
-import { StarRating } from "../ui/star-rating"
+import { useState } from "react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
+import { StarRating } from "../ui/star-rating";
 
 interface ReviewFormProps {
-  professorId: number
-  professorName: string
-  onReviewSubmitted: () => void
-  onCancel: () => void
+  professorId: number;
+  professorName: string;
+  user: {
+    email: string;
+    name: string | null;
+    campus: string;
+  };
+  onReviewSubmitted: () => void;
+  onCancel: () => void;
 }
 
 interface ReviewData {
-  student_name: string
-  rating: number
-  difficulty: number
-  would_take_again: boolean
-  course: string
-  comment: string
+  student_name: string;
+  rating: number;
+  difficulty: number;
+  would_take_again: boolean;
+  course: string;
+  comment: string;
 }
 
-const API_BASE_URL = 'http://localhost:4000/api'
+const API_BASE_URL = "http://localhost:4000/api";
 
-export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCancel }: ReviewFormProps) {
+export function ReviewForm({
+  professorId,
+  professorName,
+  user,
+  onReviewSubmitted,
+  onCancel,
+}: ReviewFormProps) {
   const [formData, setFormData] = useState<ReviewData>({
-    student_name: '',
+    student_name: "",
     rating: 5,
     difficulty: 3,
     would_take_again: true,
-    course: '',
-    comment: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    course: "",
+    comment: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/professors/${professorId}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
+      // Create reviewData that includes user_email
+      const reviewData = {
+        user_email: user.email,
+        student_name: formData.student_name,
+        rating: formData.rating,
+        difficulty: formData.difficulty,
+        would_take_again: formData.would_take_again,
+        course: formData.course,
+        comment: formData.comment,
+      };
+
+      console.log("Sending review data:", reviewData);
+
+      const response = await fetch(
+        `${API_BASE_URL}/professors/${professorId}/reviews`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(reviewData),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to submit review: ${response.status}`)
+        throw new Error(`Failed to submit review: ${response.status}`);
       }
 
-      const result = await response.json()
-      console.log('Review submitted:', result)
-      onReviewSubmitted()
+      const result = await response.json();
+      console.log("Review submitted:", result);
+      onReviewSubmitted();
     } catch (err) {
-      console.error('Error submitting review:', err)
-      setError(err instanceof Error ? err.message : 'Failed to submit review')
+      console.error("Error submitting review:", err);
+      setError(err instanceof Error ? err.message : "Failed to submit review");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -85,7 +112,9 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
               id="student_name"
               type="text"
               value={formData.student_name}
-              onChange={(e) => setFormData({ ...formData, student_name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, student_name: e.target.value })
+              }
               required
               placeholder="Enter your name"
             />
@@ -97,7 +126,9 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
               id="course"
               type="text"
               value={formData.course}
-              onChange={(e) => setFormData({ ...formData, course: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, course: e.target.value })
+              }
               required
               placeholder="e.g., CS101, MATH201"
             />
@@ -108,10 +139,14 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
             <div className="flex items-center gap-2">
               <StarRating
                 rating={formData.rating}
-                onRatingChange={(rating: number) => setFormData({ ...formData, rating })}
+                onRatingChange={(rating: number) =>
+                  setFormData({ ...formData, rating })
+                }
                 interactive={true}
               />
-              <span className="text-sm text-gray-600">({formData.rating}/5)</span>
+              <span className="text-sm text-gray-600">
+                ({formData.rating}/5)
+              </span>
             </div>
           </div>
 
@@ -120,11 +155,15 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
             <div className="flex items-center gap-2">
               <StarRating
                 rating={formData.difficulty}
-                onRatingChange={(difficulty: number) => setFormData({ ...formData, difficulty })}
+                onRatingChange={(difficulty: number) =>
+                  setFormData({ ...formData, difficulty })
+                }
                 interactive={true}
                 color="orange"
               />
-              <span className="text-sm text-gray-600">({formData.difficulty}/5)</span>
+              <span className="text-sm text-gray-600">
+                ({formData.difficulty}/5)
+              </span>
             </div>
           </div>
 
@@ -132,7 +171,9 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
             <Switch
               id="would_take_again"
               checked={formData.would_take_again}
-              onCheckedChange={(would_take_again: boolean) => setFormData({ ...formData, would_take_again })}
+              onCheckedChange={(would_take_again: boolean) =>
+                setFormData({ ...formData, would_take_again })
+              }
             />
             <Label htmlFor="would_take_again">Would take again</Label>
           </div>
@@ -142,7 +183,9 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
             <Textarea
               id="comment"
               value={formData.comment}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, comment: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setFormData({ ...formData, comment: e.target.value })
+              }
               placeholder="Share your experience with this professor..."
               rows={4}
             />
@@ -157,15 +200,12 @@ export function ReviewForm({ professorId, professorName, onReviewSubmitted, onCa
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Review'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit Review"}
             </Button>
           </div>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

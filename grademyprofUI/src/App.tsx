@@ -186,27 +186,32 @@ function App() {
       style={{ fontFamily: "Doto, monospace" }}
     >
       {/* Header */}
-      <div className="text-center py-8">
-        <h1
-          className="text-4xl font-black mb-2"
-          style={{ fontFamily: "Doto, monospace", fontWeight: 900 }}
-        >
-          Grade My Prof
-        </h1>
-        <p className="text-lg text-gray-300">
-          Find the best professors at BITS
-        </p>
-      </div>
-      {user ? (
-        <div className="flex items-center gap-2">
-          <span>Welcome, {user.name}!</span>
-          <Button onClick={handleLogout} variant="outline">
-            Logout
-          </Button>
+      <div className="flex justify-between items-center px-8 py-4">
+        <div className="flex-1"></div>
+        <div className="text-center flex-1">
+          <h1
+            className="text-4xl font-black mb-2"
+            style={{ fontFamily: "Doto, monospace", fontWeight: 900 }}
+          >
+            Grade My Prof
+          </h1>
+          <p className="text-lg text-gray-300">
+            Find the best professors at BITS
+          </p>
         </div>
-      ) : (
-        <Button onClick={handleGoogleLogin}>Login with Google</Button>
-      )}
+        <div className="flex-1 flex justify-end">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span>Welcome, {user.name}!</span>
+              <Button onClick={handleLogout} variant="outline">
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={handleGoogleLogin}>Login with Google</Button>
+          )}
+        </div>
+      </div>
 
       {/* Campus Selection */}
       <div className="flex justify-center gap-4 py-4 px-8">
@@ -453,6 +458,7 @@ function App() {
           <ReviewForm
             professorId={selectedProfessor.id}
             professorName={selectedProfessor.name}
+            user={user}
             onReviewSubmitted={handleReviewSubmitted}
             onCancel={() => setShowReviewForm(false)}
           />

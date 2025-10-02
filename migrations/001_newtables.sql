@@ -12,16 +12,6 @@ CREATE TABLE professor (
     would_take_again_percent INT DEFAULT 0
 );
 
-CREATE TABLE reviews (
-    id SERIAL PRIMARY KEY,
-    professor_id INT,
-    rating DECIMAL(2,1),
-    difficulty DECIMAL(2,1),
-    would_take_again BOOLEAN,
-    review_text TEXT,
-    FOREIGN KEY (professor_id) REFERENCES professor(id)
-);
-
 -- Sample data to match your UI
 INSERT INTO professor (name, department, campus, university, average_rating, review_count, average_difficulty, would_take_again_percent) VALUES
 -- Pilani

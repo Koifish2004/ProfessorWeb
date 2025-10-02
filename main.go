@@ -29,6 +29,7 @@ type Professor struct {
 type Review struct {
 	ID             int     `json:"id"`
 	ProfessorID    int     `json:"professor_id"`
+	UserEmail      string  `json:"user_email"`
 	StudentName    string  `json:"student_name"`
 	Rating         float64 `json:"rating"`
 	Difficulty     float64 `json:"difficulty"`
@@ -39,6 +40,7 @@ type Review struct {
 }
 
 type ReviewInput struct {
+	UserEmail    string  `json:"user_email"`
 	StudentName    string  `json:"student_name"`
 	Rating         float64 `json:"rating"`
 	Difficulty     float64 `json:"difficulty"`
@@ -87,6 +89,7 @@ func main() {
 	app.Get("/api/professors/:id", getProfessor)
 	app.Get("/api/professors/:id/reviews", getReviews)
 	app.Post("/api/professors/:id/reviews", createReview)
+	app.Get("/api/professors/:id/user-review", checkExistingReview)
 
 	// Your existing routes
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -140,6 +143,46 @@ func getProfessors(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(professors)
+}
+
+
+func checkExistingReview(c *fiber.Ctx) error {
+	professorID := c.Params("id")
+	userEmail := c.Query("user_email")
+
+	if userEmail == "" {
+		return c.Status(400).JSON(fiber.Map{"error":"User email is required"})
+	}
+
+	url :=fmt.Sprintf("%s/rest/v1/reviews?professor_id=eq.%s&user_email=eq.%s", supabase.URL, professorID, userEmail)
+
+	req, _ :=http.NewRequest("GET", url, nil)
+	req.Header.Add("apikey", supabase.APIKey)
+	req.Header.Add("Authorization", "Bearer "+supabase.APIKey)
+
+	client :=&http.Client{}
+	resp, err:= client.Do(req)
+	if err!=nil{
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to check exisiting review"})
+
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var existingReviews []Review 
+	json.Unmarshal(body, &existingReviews)
+
+	hasReviewed := len(existingReviews) > 0
+	var existingReview *Review = nil
+	if hasReviewed {
+		existingReview = &existingReviews[0]
+	}
+
+	return c.JSON(fiber.Map{
+		"hasReviewed": hasReviewed,
+		"existingReview": existingReview,
+	})
 }
 
 func getProfessor(c *fiber.Ctx) error {
@@ -237,6 +280,7 @@ func createReview(c *fiber.Ctx) error {
 	// Create the review data with professor_id
 	reviewData := map[string]interface{}{
 		"professor_id":     professorID,
+		"user_email": 		reviewInput.UserEmail,
 		"student_name":     reviewInput.StudentName,
 		"rating":           reviewInput.Rating,
 		"difficulty":       reviewInput.Difficulty,
