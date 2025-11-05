@@ -55,6 +55,8 @@ function App() {
     campus: string;
   } | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const [userExistingReview, setUserExistingReview] = useState<Review | null>(
     null
@@ -62,6 +64,18 @@ function App() {
   const [checkingReview, setCheckingReview] = useState(false);
 
   //BackendCalls
+
+  const filteredProfessors = professors.filter((professor) => {
+    const query = searchQuery.toLowerCase().trim();
+
+    if (!query) return true;
+
+    return (
+      professor.name.toLowerCase().includes(query) ||
+      professor.department.toLowerCase().includes(query) ||
+      professor.university.toLowerCase().includes(query)
+    );
+  });
 
   const checkUserExistingReview = async (professorId: number) => {
     if (!user) {
@@ -185,6 +199,7 @@ function App() {
     setActiveCampus("pilani");
     setSelectedProfessor(null);
     setShowReviewForm(false);
+    setSearchQuery(""); // 🆕 ADD THIS
     await fetchProfessors("pilani");
   };
 
@@ -192,6 +207,7 @@ function App() {
     setActiveCampus("goa");
     setSelectedProfessor(null);
     setShowReviewForm(false);
+    setSearchQuery(""); // 🆕 ADD THIS
     await fetchProfessors("goa");
   };
 
@@ -199,6 +215,7 @@ function App() {
     setActiveCampus("hyderabad");
     setSelectedProfessor(null);
     setShowReviewForm(false);
+    setSearchQuery(""); // 🆕 ADD THIS
     await fetchProfessors("hyderabad");
   };
 
@@ -336,70 +353,104 @@ function App() {
               />
             </svg>
             <Input
-              className="pl-10 pr-4"
-              placeholder="Search anything..."
+              className="pl-10 pr-20"
+              placeholder="Search professors, departments..."
               type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Button
-              className="absolute right-1 top-1/2 h-8 -translate-y-1/2"
-              size="sm"
-              type="submit"
-            >
-              Search
-            </Button>
+            {searchQuery && (
+              <Button
+                className="absolute right-1 top-1/2 h-8 -translate-y-1/2"
+                size="sm"
+                variant="ghost"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Professor Reviews List */}
       <div className="max-w-4xl mx-auto px-8 mt-8">
-        <h2
-          className="text-2xl font-bold mb-6 text-center"
-          style={{ fontFamily: "Doto, monospace" }}
-        >
-          BITS {activeCampus.charAt(0).toUpperCase() + activeCampus.slice(1)}{" "}
-          Professors
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {professors.map((professor) => (
-            <Card
-              key={professor.id}
-              className="bg-gray-800 border-gray-600 cursor-pointer hover:bg-gray-700 transition-colors"
-              onClick={() => handleProfessorClick(professor)}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg font-bold">
-                  {professor.name}
-                </CardTitle>
-                <p className="text-gray-300 text-sm">{professor.department}</p>
-                <p className="text-gray-400 text-xs">{professor.university}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="bg-blue-600 text-white"
-                    >
-                      ★ {professor.average_rating.toFixed(1)}
-                    </Badge>
-                    <span className="text-gray-300 text-sm">
-                      ({professor.review_count} reviews)
+        <div className="flex justify-between items-center mb-6">
+          <h2
+            className="text-2xl font-bold text-center flex-1"
+            style={{ fontFamily: "Doto, monospace" }}
+          >
+            BITS {activeCampus.charAt(0).toUpperCase() + activeCampus.slice(1)}{" "}
+            Professors
+          </h2>
+          {searchQuery && (
+            <span className="text-sm text-gray-400">
+              {filteredProfessors.length} result
+              {filteredProfessors.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {filteredProfessors.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400 text-lg mb-2">No professors found</p>
+            <p className="text-gray-500 text-sm">
+              Try searching with different keywords or{" "}
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                clear your search
+              </button>
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredProfessors.map((professor) => (
+              <Card
+                key={professor.id}
+                className="bg-gray-800 border-gray-600 cursor-pointer hover:bg-gray-700 transition-colors"
+                onClick={() => handleProfessorClick(professor)}
+              >
+                {/* ... existing card content ... */}
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg font-bold">
+                    {professor.name}
+                  </CardTitle>
+                  <p className="text-gray-300 text-sm">
+                    {professor.department}
+                  </p>
+                  <p className="text-gray-400 text-xs">
+                    {professor.university}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className="bg-blue-600 text-white"
+                      >
+                        ★ {professor.average_rating.toFixed(1)}
+                      </Badge>
+                      <span className="text-gray-300 text-sm">
+                        ({professor.review_count} reviews)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-300">
+                    <span>
+                      Difficulty: {professor.average_difficulty.toFixed(1)}/5
+                    </span>
+                    <span className="text-green-400">
+                      {professor.would_take_again_percent}% would take again
                     </span>
                   </div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-300">
-                  <span>
-                    Difficulty: {professor.average_difficulty.toFixed(1)}/5
-                  </span>
-                  <span className="text-green-400">
-                    {professor.would_take_again_percent}% would take again
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Selected Professor Details */}
