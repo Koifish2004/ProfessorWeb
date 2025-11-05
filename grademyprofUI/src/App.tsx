@@ -55,6 +55,48 @@ function App() {
     campus: string;
   } | null>(null);
 
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const [userExistingReview, setUserExistingReview] = useState<Review | null>(
+    null
+  );
+  const [checkingReview, setCheckingReview] = useState(false);
+
+  //BackendCalls
+
+  const checkUserExistingReview = async (professorId: number) => {
+    if (!user) {
+      setHasUserReviewed(false);
+      setUserExistingReview(null);
+      return;
+    }
+
+    setCheckingReview(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/professors/${professorId}/user-review?user_email=${encodeURIComponent(
+          user.email
+        )}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Backend response:", data);
+        setHasUserReviewed(data.hasReviewed);
+        setUserExistingReview(data.existingReview || null);
+      } else {
+        console.error("Failed to check existing review:", response.statusText);
+        setHasUserReviewed(false);
+        setUserExistingReview(null);
+      }
+    } catch (err) {
+      console.error("Error checking existing review:", err);
+      setHasUserReviewed(false);
+      setUserExistingReview(null);
+    } finally {
+      setCheckingReview(false);
+    }
+  };
   //Add authentication logic here
 
   const handleGoogleLogin = async () => {
@@ -87,6 +129,8 @@ function App() {
     try {
       await signOut(auth);
       setUser(null);
+      setHasUserReviewed(false);
+      setUserExistingReview(null);
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -162,6 +206,8 @@ function App() {
     setSelectedProfessor(professor);
     setShowReviewForm(false);
     fetchReviews(professor.id);
+
+    checkUserExistingReview(professor.id);
   };
 
   const handleReviewSubmitted = async () => {
@@ -171,6 +217,7 @@ function App() {
       setTimeout(async () => {
         await fetchReviews(selectedProfessor.id);
         await fetchProfessors(activeCampus); // Refresh professor list with updated stats
+        checkUserExistingReview(selectedProfessor.id); // Re-check if user has reviewed
       }, 1000);
     }
   };
@@ -398,13 +445,44 @@ function App() {
               </div>
               <div className="flex gap-2">
                 {user ? (
-                  <Button
-                    variant="default"
-                    className="flex-1"
-                    onClick={() => setShowReviewForm(true)}
-                  >
-                    Write a Review
-                  </Button>
+                  checkingReview ? (
+                    // Still checking if user has reviewed
+                    <Button variant="secondary" disabled className="flex-1">
+                      Checking review status...
+                    </Button>
+                  ) : hasUserReviewed ? (
+                    // User has already reviewed - show different UI
+                    <div className="flex-1 space-y-2">
+                      <Button variant="secondary" disabled className="w-full">
+                        ✅ You've already reviewed this professor
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          if (userExistingReview) {
+                            alert(
+                              `Your review (${userExistingReview.rating}⭐): "${
+                                userExistingReview.comment || "No comment"
+                              }"`
+                            );
+                          }
+                        }}
+                      >
+                        View Your Review
+                      </Button>
+                    </div>
+                  ) : (
+                    // User hasn't reviewed - show write review button
+                    <Button
+                      variant="default"
+                      className="flex-1"
+                      onClick={() => setShowReviewForm(true)}
+                    >
+                      Write a Review
+                    </Button>
+                  )
                 ) : (
                   <Button
                     variant="secondary"
@@ -453,7 +531,7 @@ function App() {
       )}
 
       {/* Review Form */}
-      {selectedProfessor && showReviewForm && (
+      {selectedProfessor && showReviewForm && user && (
         <div className="max-w-4xl mx-auto px-8 mt-8">
           <ReviewForm
             professorId={selectedProfessor.id}
