@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 const firebaseConfig = {
-  apiKey: "***REMOVED***",
+  apiKey: "AIzaSyCbKmbx3MQ8CXU9620X6oLEGxDDyLwGgU8",
   authDomain: "grademyprof-d35a4.firebaseapp.com",
   projectId: "grademyprof-d35a4",
   storageBucket: "grademyprof-d35a4.firebasestorage.app",
