@@ -111,3 +111,8 @@ go.work
 
 # Air (Go hot reload)
 tmp/
+grademyprofAPI/tmp/
+
+# Backend build artifacts
+grademyprofAPI/*.exe
+grademyprofAPI/*.test
