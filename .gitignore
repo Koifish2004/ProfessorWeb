@@ -116,3 +116,16 @@ grademyprofAPI/tmp/
 # Backend build artifacts
 grademyprofAPI/*.exe
 grademyprofAPI/*.test
+dev.sh
+
+
+# Environment variables - CRITICAL!
+.env
+.env.*
+!.env.example
+*.env.local
+
+# Frontend specific
+grademyprofUI/.env
+grademyprofUI/.env.*
+!grademyprofUI/.env.example
