@@ -9,10 +9,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Koifish2004/ProfessorWeb/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 )
+
 
 type Professor struct {
 	ID                    int     `json:"id"`
@@ -80,16 +82,17 @@ func main() {
 	// CORS for your React app
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://localhost:5173", // Your Vite dev server
-		AllowHeaders: "Origin, Content-Type, Accept",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	}))
 
 	// API routes
 	app.Get("/api/professors", getProfessors)
 	app.Get("/api/professors/:id", getProfessor)
 	app.Get("/api/professors/:id/reviews", getReviews)
-	app.Post("/api/professors/:id/reviews", createReview)
-	app.Get("/api/professors/:id/user-review", checkExistingReview)
+	app.Post("/api/professors/:id/reviews", middleware.AuthMiddleware, createReview)
+	app.Patch("/api/professors/:id/reviews/:reviewId", middleware.AuthMiddleware, updateReview)
+	app.Get("/api/professors/:id/user-review",middleware.AuthMiddleware, checkExistingReview)
 
 	// Your existing routes
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -339,6 +342,85 @@ func createReview(c *fiber.Ctx) error {
 	go updateProfessorStats(professorID)
 
 	return c.JSON(createdReview[0])
+}
+
+func updateReview(c *fiber.Ctx) error {
+	professorID := c.Params("id")
+	reviewID := c.Params("reviewId")
+
+	var reviewInput ReviewInput
+	if err := c.BodyParser(&reviewInput); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	log.Printf("🔍 Update Review - Professor: %s, ReviewID: %s, UserEmail: %s", professorID, reviewID, reviewInput.UserEmail)
+
+	// Create the review data for update
+	reviewData := map[string]interface{}{
+		"student_name":     reviewInput.StudentName,
+		"rating":           reviewInput.Rating,
+		"difficulty":       reviewInput.Difficulty,
+		"would_take_again": reviewInput.WouldTakeAgain,
+		"course":           reviewInput.Course,
+		"comment":          reviewInput.Comment,
+	}
+
+	// Convert to JSON for Supabase
+	jsonData, err := json.Marshal(reviewData)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to process review data"})
+	}
+
+	// Make PATCH request to Supabase to update the review
+	url := fmt.Sprintf("%s/rest/v1/reviews?id=eq.%s", supabase.URL, reviewID)
+
+	log.Printf("🌐 Supabase PATCH URL: %s", url)
+
+	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(jsonData)))
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to create request"})
+	}
+
+	req.Header.Set("apikey", supabase.APIKey)
+	req.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Prefer", "return=representation")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Supabase API error: %v", err)
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to update review"})
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to read response"})
+	}
+
+	log.Printf("📡 Supabase Response Status: %d, Body: %s", resp.StatusCode, string(body))
+
+	if resp.StatusCode != 200 {
+		log.Printf("❌ Supabase API returned status %d: %s", resp.StatusCode, string(body))
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to update review"})
+	}
+
+	var updatedReview []Review
+	if err := json.Unmarshal(body, &updatedReview); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to parse response"})
+	}
+
+	log.Printf("📝 Supabase returned %d reviews", len(updatedReview))
+
+	if len(updatedReview) == 0 {
+		return c.Status(404).JSON(fiber.Map{"error": "Review not found"})
+	}
+
+	// Update professor statistics after updating review
+	go updateProfessorStats(professorID)
+
+	return c.JSON(updatedReview[0])
 }
 
 func updateProfessorStats(professorID string) {

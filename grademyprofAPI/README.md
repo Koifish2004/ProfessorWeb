@@ -5,24 +5,28 @@ Backend API service for the GradeMyProf application built with Go and Fiber fram
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Go 1.21 or higher
 - Supabase account with database set up
 
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 cd grademyprofAPI
 go mod download
 ```
 
 2. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your Supabase credentials
 ```
 
 3. Run the server:
+
 ```bash
 # Development (with hot reload)
 air
@@ -48,12 +52,14 @@ grademyprofAPI/
 ## 🔌 API Endpoints
 
 ### Professors
+
 - `GET /api/professors?campus={campus}` - Get all professors by campus
 - `GET /api/professors/:id` - Get single professor by ID
 - `GET /api/professors/:id/reviews` - Get all reviews for a professor
 - `POST /api/professors/:id/reviews` - Create a new review
 
 ### User Reviews
+
 - `GET /api/professors/:id/user-review?user_email={email}` - Check if user has reviewed professor
 
 ## 🔧 Environment Variables
@@ -73,16 +79,19 @@ See `/migrations` folder in the root directory for database schema and migration
 ## 🛠 Development
 
 ### Hot Reload
+
 ```bash
 air
 ```
 
 ### Build
+
 ```bash
 go build -o bin/api main.go
 ```
 
 ### Run Tests
+
 ```bash
 go test ./...
 ```
