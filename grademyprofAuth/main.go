@@ -1,17 +1,39 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"net/http"
+	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/Koifish2004/ProfessorWeb/grademyprofAuth/initializer"
+	"github.com/Koifish2004/ProfessorWeb/grademyprofAuth/middleware"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 
-func main(){
-	fmt.Println("Hello World")
-	err := godotenv.Load()
-	if err != nil {
-    	log.Fatal("Error loading .env file")
+func init(){
+	initializer.LoadEnvVars()
 }
+
+func main(){
+	r:=gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // Your React frontend
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+        AllowHeaders:     []string{"Content-Type", "Authorization"},
+        AllowCredentials: true,
+		
+	}))
+
+	r.POST("/login",middleware.RateLimiter(5, time.Minute), middleware.GenerateJWT)
+
+	r.GET("/verify-token", middleware.RequireAuthHeader, func(c *gin.Context) {
+        email, _ := c.Get("user_email")
+        c.JSON(http.StatusOK, gin.H{
+            "valid": true,
+            "email": email,
+        })
+    })
+
+	r.Run()
 }

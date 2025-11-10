@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Koifish2004/ProfessorWeb/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/joho/godotenv"
 )
 
@@ -79,22 +81,62 @@ func main() {
 
 	app := fiber.New()
 
-	// CORS for your React app
+	// CORS
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://localhost:5173", // Your Vite dev server
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	}))
 
+
+	app.Use(limiter.New(limiter.Config{
+		Max:100,
+		Expiration: 1*time.Minute,
+		KeyGenerator: func(c*fiber.Ctx) string{
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error{
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Rate limitted boi, too fast heh",
+			})
+		},
+	}))
+
+
+	reviewCreateLimiter := limiter.New(limiter.Config{
+		Max:5,
+		Expiration: 1*time.Minute,
+		KeyGenerator: func(c*fiber.Ctx) string{
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error{
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Stop reviewing so much G",
+			})
+		},
+	})
+
+	reviewUpdateLimiter := limiter.New(limiter.Config{
+		Max:10,
+		Expiration: 1*time.Minute,
+		KeyGenerator: func(c*fiber.Ctx) string{
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error{
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Make up your mind cuh, this ain't deep",
+			})
+		},
+	})
+
+
 	// API routes
 	app.Get("/api/professors", getProfessors)
 	app.Get("/api/professors/:id", getProfessor)
 	app.Get("/api/professors/:id/reviews", getReviews)
-	app.Post("/api/professors/:id/reviews", middleware.AuthMiddleware, createReview)
-	app.Patch("/api/professors/:id/reviews/:reviewId", middleware.AuthMiddleware, updateReview)
+	app.Post("/api/professors/:id/reviews", middleware.AuthMiddleware,reviewCreateLimiter, createReview)
+	app.Patch("/api/professors/:id/reviews/:reviewId", middleware.AuthMiddleware,reviewUpdateLimiter, updateReview)
 	app.Get("/api/professors/:id/user-review",middleware.AuthMiddleware, checkExistingReview)
-
-	// Your existing routes
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hello World"})
 	})
@@ -109,9 +151,9 @@ func main() {
 }
 
 func getProfessors(c *fiber.Ctx) error {
-	campus := c.Query("campus", "pilani") // Default to pilani
+	campus := c.Query("campus", "pilani") 
 
-	// Make request to Supabase REST API
+	// request to Supabase
 	url := fmt.Sprintf("%s/rest/v1/professor?campus=eq.%s&order=average_rating.desc", supabase.URL, campus)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -520,5 +562,5 @@ func updateProfessorStats(professorID string) {
 		return
 	}
 
-	log.Printf("✅ Updated professor %s stats: avg_rating=%.2f, reviews=%d", professorID, averageRating, reviewCount)
+	log.Printf("Updated professor %s reviews=%d", professorID, reviewCount)
 }

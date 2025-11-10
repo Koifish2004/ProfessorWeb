@@ -37,6 +37,7 @@ interface Review {
 const API_BASE_URL = "http://localhost:4000/api";
 
 function App() {
+  const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(
     null
@@ -78,7 +79,7 @@ function App() {
   });
 
   const checkUserExistingReview = async (professorId: number) => {
-    if (!user) {
+    if (!user || !jwtToken) {
       setHasUserReviewed(false);
       setUserExistingReview(null);
       return;
@@ -90,7 +91,12 @@ function App() {
       const response = await fetch(
         `${API_BASE_URL}/professors/${professorId}/user-review?user_email=${encodeURIComponent(
           user.email
-        )}`
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${jwtToken}`,
+          },
+        }
       );
 
       if (response.ok) {
@@ -122,11 +128,33 @@ function App() {
         const val = validateUniversityEmail(userEmail);
 
         if (val.isValid) {
-          setUser({
-            email: userEmail,
-            name: result.user.displayName,
-            campus: val.campus ?? "",
-          });
+          try {
+            const authResponse = await fetch("http://localhost:8080/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: userEmail }),
+            });
+
+            if (authResponse.ok) {
+              const authData = await authResponse.json();
+
+              setJwtToken(authData.token);
+              localStorage.setItem("jwt_token", authData.token);
+
+              setUser({
+                email: userEmail,
+                name: result.user.displayName,
+                campus: val.campus ?? "",
+              });
+            } else {
+              alert("Failed to auth. Try again later");
+              await signOut(auth);
+            }
+          } catch (authError) {
+            console.error("Auth backend err", authError);
+            alert("AuthService is unavailable");
+            await signOut(auth);
+          }
         } else {
           alert("Please use your university email to login");
           await signOut(auth);
@@ -143,6 +171,8 @@ function App() {
     try {
       await signOut(auth);
       setUser(null);
+      setJwtToken(null);
+      localStorage.removeItem("jwt_token");
       setHasUserReviewed(false);
       setUserExistingReview(null);
     } catch (error) {
@@ -238,6 +268,14 @@ function App() {
       }, 1000);
     }
   };
+
+  // Load JWT token from localStorage on component mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem("jwt_token");
+    if (savedToken) {
+      setJwtToken(savedToken);
+    }
+  }, []);
 
   // Load professors on component mount
   useEffect(() => {
@@ -502,27 +540,39 @@ function App() {
                       Checking review status...
                     </Button>
                   ) : hasUserReviewed ? (
-                    // User has already reviewed - show different UI
+                    // User has already reviewed - show edit option
                     <div className="flex-1 space-y-2">
                       <Button variant="secondary" disabled className="w-full">
                         ✅ You've already reviewed this professor
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => {
-                          if (userExistingReview) {
-                            alert(
-                              `Your review (${userExistingReview.rating}⭐): "${
-                                userExistingReview.comment || "No comment"
-                              }"`
-                            );
-                          }
-                        }}
-                      >
-                        View Your Review
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            if (userExistingReview) {
+                              alert(
+                                `Your review (${
+                                  userExistingReview.rating
+                                }⭐): "${
+                                  userExistingReview.comment || "No comment"
+                                }"`
+                              );
+                            }
+                          }}
+                        >
+                          View Your Review
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setShowReviewForm(true)}
+                        >
+                          Edit Review
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     // User hasn't reviewed - show write review button
@@ -588,6 +638,8 @@ function App() {
             professorId={selectedProfessor.id}
             professorName={selectedProfessor.name}
             user={user}
+            jwtToken={jwtToken || ""}
+            existingReview={userExistingReview}
             onReviewSubmitted={handleReviewSubmitted}
             onCancel={() => setShowReviewForm(false)}
           />

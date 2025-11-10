@@ -15,6 +15,16 @@ interface ReviewFormProps {
     name: string | null;
     campus: string;
   };
+  jwtToken: string;
+  existingReview?: {
+    id: number;
+    student_name: string;
+    rating: number;
+    difficulty: number;
+    would_take_again: boolean;
+    course: string;
+    comment: string;
+  } | null;
   onReviewSubmitted: () => void;
   onCancel: () => void;
 }
@@ -34,16 +44,20 @@ export function ReviewForm({
   professorId,
   professorName,
   user,
+  jwtToken,
+  existingReview,
   onReviewSubmitted,
   onCancel,
 }: ReviewFormProps) {
+  const isEditing = !!existingReview;
+
   const [formData, setFormData] = useState<ReviewData>({
-    student_name: "",
-    rating: 5,
-    difficulty: 3,
-    would_take_again: true,
-    course: "",
-    comment: "",
+    student_name: existingReview?.student_name || "",
+    rating: existingReview?.rating || 5,
+    difficulty: existingReview?.difficulty || 3,
+    would_take_again: existingReview?.would_take_again ?? true,
+    course: existingReview?.course || "",
+    comment: existingReview?.comment || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,16 +81,22 @@ export function ReviewForm({
 
       console.log("Sending review data:", reviewData);
 
-      const response = await fetch(
-        `${API_BASE_URL}/professors/${professorId}/reviews`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(reviewData),
-        }
-      );
+      const url =
+        isEditing && existingReview
+          ? `${API_BASE_URL}/professors/${professorId}/reviews/${existingReview.id}`
+          : `${API_BASE_URL}/professors/${professorId}/reviews`;
+
+      console.log("Request URL:", url);
+      console.log("Method:", isEditing ? "PUT" : "POST");
+
+      const response = await fetch(url, {
+        method: isEditing ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwtToken}`,
+        },
+        body: JSON.stringify(reviewData),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to submit review: ${response.status}`);
@@ -96,7 +116,9 @@ export function ReviewForm({
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Write a Review for {professorName}</CardTitle>
+        <CardTitle>
+          {isEditing ? "Edit" : "Write"} a Review for {professorName}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -201,7 +223,11 @@ export function ReviewForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Review"}
+              {isSubmitting
+                ? "Submitting..."
+                : isEditing
+                ? "Update Review"
+                : "Submit Review"}
             </Button>
           </div>
         </form>

@@ -58,6 +58,7 @@ See [grademyprofUI/README.md](grademyprofUI/README.md) for more details.
 ## 🛠 Technology Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for build tooling
 - **TailwindCSS** for styling
@@ -65,6 +66,7 @@ See [grademyprofUI/README.md](grademyprofUI/README.md) for more details.
 - **Firebase** for authentication
 
 ### Backend
+
 - **Go 1.21+** with Fiber framework
 - **Supabase** (PostgreSQL) for database
 - **Air** for hot reload in development
@@ -72,6 +74,7 @@ See [grademyprofUI/README.md](grademyprofUI/README.md) for more details.
 ## 🔧 Development
 
 ### Prerequisites
+
 - Node.js 18+ and npm
 - Go 1.21+
 - Supabase account
@@ -80,6 +83,7 @@ See [grademyprofUI/README.md](grademyprofUI/README.md) for more details.
 ### Environment Variables
 
 **Backend** (`.env` in `grademyprofAPI/`):
+
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_anon_key
@@ -87,6 +91,7 @@ PORT=4000
 ```
 
 **Frontend** (`.env` in `grademyprofUI/`):
+
 ```env
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
@@ -105,6 +110,7 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 ## 🗄 Database Schema
 
 See `/migrations` folder for complete schema including:
+
 - `professor` table - Professor information and statistics
 - `reviews` table - Student reviews with ratings
 - Unique constraints and indexes
@@ -130,6 +136,7 @@ See `/migrations` folder for complete schema including:
 ## 🚧 Future Microservices
 
 The project structure is designed to support additional microservices:
+
 - `grademyprofAuth/` - Dedicated authentication service
 - `grademyprofAnalytics/` - Analytics and reporting
 - `grademyprofNotifications/` - Email/push notifications
