@@ -1,165 +1,187 @@
-# GradeMyProf
+# GradeMyProfessor
 
-A comprehensive professor rating system for BITS Pilani (all campuses) with Google OAuth authentication restricted to university emails.
+A RateMyProfessor clone for BITS Pilani students across Pilani, Goa, and Hyderabad campuses.
 
-## 🏗 Project Structure
+## What is this?
 
-```
-GradeMyProf/
-├── grademyprofUI/          # Frontend (React + Vite + TailwindCSS)
-├── grademyprofAPI/         # Backend API (Go + Fiber)
-├── migrations/             # Database migrations (Supabase/PostgreSQL)
-└── README.md              # This file
-```
+Students can rate professors with star ratings and written reviews. Professors get an average rating based on all reviews. You need a BITS Pilani email to login and use the app.
 
-## 🚀 Quick Start
+## Requirements
 
-### 1. Backend API Setup
+To use this app, you need:
 
-```bash
-cd grademyprofAPI
-go mod download
-cp .env.example .env  # Configure your Supabase credentials
-air  # Start with hot reload
-```
+- A BITS Pilani university email (@pilani.bits-pilani.ac.in, @goa.bits-pilani.ac.in, or @hyderabad.bits-pilani.ac.in)
+- Login via Google OAuth to submit or edit reviews
+- You can browse professors without logging in, but functionality is limited
 
-Backend runs on `http://localhost:4000`
+**This is not deployed publicly.** You need to run it locally or deploy it yourself.
 
-See [grademyprofAPI/README.md](grademyprofAPI/README.md) for more details.
+## Tech Stack
 
-### 2. Frontend UI Setup
+**Frontend:** React, TypeScript, Vite, TailwindCSS, shadcn/ui  
+**Backend:** Go with Fiber (main API) and Gin (auth service)  
+**Database:** Supabase (PostgreSQL)  
+**Authentication:** Firebase OAuth + JWT
 
-```bash
-cd grademyprofUI
-npm install
-npm run dev
-```
-
-Frontend runs on `http://localhost:5173`
-
-See [grademyprofUI/README.md](grademyprofUI/README.md) for more details.
-
-### 3. Database Setup
-
-1. Create a Supabase project
-2. Run migrations in order from `/migrations` folder
-3. Configure RLS policies as specified in migration files
-
-## ✨ Features
-
-- 🔐 **Google OAuth Authentication** - Restricted to BITS university emails
-- 🎓 **Multi-Campus Support** - Pilani, Goa, and Hyderabad campuses
-- ⭐ **Review System** - Rate professors with star ratings and comments
-- 🚫 **Duplicate Prevention** - One review per user per professor
-- 📊 **Real-time Statistics** - Auto-updated professor ratings
-- 🎨 **Modern UI** - Dark theme with responsive design
-- 🔍 **Search & Filter** - Find professors quickly
-
-## 🛠 Technology Stack
-
-### Frontend
-
-- **React 18** with TypeScript
-- **Vite** for build tooling
-- **TailwindCSS** for styling
-- **shadcn/ui** component library
-- **Firebase** for authentication
-
-### Backend
-
-- **Go 1.21+** with Fiber framework
-- **Supabase** (PostgreSQL) for database
-- **Air** for hot reload in development
-
-## 🔧 Development
+## Local Development Setup
 
 ### Prerequisites
 
-- Node.js 18+ and npm
 - Go 1.21+
-- Supabase account
-- Firebase project (for Google OAuth)
+- Node.js 18+
+- Supabase account (free tier works)
+- Firebase project (free tier works)
 
-### Environment Variables
+### Step 1: Database Setup (Supabase)
 
-**Backend** (`.env` in `grademyprofAPI/`):
+1. Create a project at [supabase.com](https://supabase.com)
+2. Copy your `SUPABASE_URL` and `SUPABASE_ANON_KEY` from project settings
+3. Run migrations in order from the `/migrations` folder:
+   - `001_newtables.sql`
+   - `002_indexing.sql`
+   - `005_reviews_table.sql`
+4. Disable Row Level Security (RLS) on the reviews table, or use `SUPABASE_SERVICE_ROLE_KEY` instead
 
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key
-PORT=4000
+### Step 2: Authentication Setup (Firebase)
+
+1. Create a project at [Firebase Console](https://console.firebase.google.com)
+2. Enable Google Sign-In under Authentication
+3. Add `localhost` to authorized domains (Authentication > Settings > Authorized domains)
+4. Copy all 7 Firebase config values (API key, auth domain, project ID, etc.)
+
+### Step 3: Install and Configure
+
+Clone the repository:
+
+```bash
+git clone [your-repo-url]
+cd GradeMyProf
 ```
 
-**Frontend** (`.env` in `grademyprofUI/`):
+**Auth Service Setup:**
 
-```env
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-# ... other Firebase config
+```bash
+cd grademyprofAuth
+cp .env.example .env
+# Edit .env and add:
+# JWT_SECRET=your_random_secret_here (generate with: openssl rand -base64 32)
+go mod download
 ```
 
-## 📋 API Endpoints
+**API Service Setup:**
 
-- `GET /api/professors?campus={campus}` - Get professors by campus
+```bash
+cd grademyprofAPI
+cp .env.example .env
+# Edit .env and add:
+# SUPABASE_URL=https://xxx.supabase.co
+# SUPABASE_ANON_KEY=eyJ...
+# PORT=4000
+go mod download
+```
+
+**Frontend Setup:**
+
+```bash
+cd grademyprofUI
+cp .env.example .env
+# Edit .env and add all 7 Firebase variables:
+# VITE_FIREBASE_API_KEY=...
+# VITE_FIREBASE_AUTH_DOMAIN=...
+# VITE_FIREBASE_PROJECT_ID=...
+# (and 4 more)
+npm install
+```
+
+### Step 4: Run All Services
+
+You need all three services running simultaneously:
+
+```bash
+# Terminal 1 - Auth Service
+cd grademyprofAuth
+go run main.go  # Runs on :8080
+
+# Terminal 2 - API Service
+cd grademyprofAPI
+go run main.go  # Runs on :4000
+
+# Terminal 3 - Frontend
+cd grademyprofUI
+npm run dev  # Runs on :5173
+```
+
+Open `http://localhost:5173` in your browser.
+
+### Common Setup Issues
+
+**CORS errors:** Make sure your API is configured to allow `http://localhost:5173` (no trailing slash)
+
+**Auth not working:** Verify `localhost` is in Firebase authorized domains and all 7 Firebase env variables are set correctly
+
+**Database errors:** Check that Supabase migrations ran successfully and RLS is disabled on reviews table
+
+**Services can't communicate:** All three services must be running on their default ports (8080, 4000, 5173)
+
+## What Works
+
+- Google OAuth login with BITS email validation
+- Browse professors by campus (Pilani, Goa, Hyderabad)
+- Search professors by name/department
+- Submit reviews with 1-5 star ratings and comments
+- Edit your own reviews
+- View professor average ratings
+- Duplicate review prevention (one review per user per professor)
+- Rate limiting on auth and API endpoints
+
+## Known Limitations
+
+- No ability to delete reviews (only create/edit)
+- No Dubai or Mumbai campus support yet
+- No sorting or filtering on reviews
+- No pagination (loads all reviews at once)
+- No user profile page to see all your reviews
+- No review voting or moderation system
+
+## Deployment
+
+This app is not currently deployed. To deploy:
+
+- **Frontend:** Vercel, Netlify, or similar
+- **Backend services:** Fly.io, Railway, Render, or any VPS
+- **Database:** Already hosted on Supabase
+
+Make sure to:
+
+1. Update CORS settings for your production domain
+2. Add your production domain to Firebase authorized domains
+3. Set all environment variables on your hosting platform
+4. Use proper secrets management (not `.env` files in production)
+
+## Project Structure
+
+```
+GradeMyProf/
+├── grademyprofUI/          # React frontend
+├── grademyprofAPI/         # Go Fiber API service
+├── grademyprofAuth/        # Go Gin auth service
+├── migrations/             # Supabase SQL migrations
+└── README.md
+```
+
+## API Endpoints
+
+- `GET /api/professors?campus={campus}` - List professors by campus
 - `GET /api/professors/:id` - Get professor details
-- `GET /api/professors/:id/reviews` - Get professor reviews
-- `POST /api/professors/:id/reviews` - Submit a review
-- `GET /api/professors/:id/user-review?user_email={email}` - Check user review status
+- `GET /api/professors/:id/reviews` - Get all reviews for a professor
+- `POST /api/professors/:id/reviews` - Submit a new review
+- `PUT /api/professors/:id/reviews/:review_id` - Edit your review
+- `GET /api/professors/:id/user-review?user_email={email}` - Check if user has reviewed
 
-## 🗄 Database Schema
+## License
 
-See `/migrations` folder for complete schema including:
+MIT
 
-- `professor` table - Professor information and statistics
-- `reviews` table - Student reviews with ratings
-- Unique constraints and indexes
-- Row Level Security policies
+## Author
 
-## 🎨 UI Components
-
-- Professor cards with ratings
-- Interactive review forms
-- Star rating system
-- Campus selection buttons
-- Search and filter functionality
-- Review display cards
-
-## 🔒 Security Features
-
-- University email validation
-- One review per user per professor (database constraint)
-- CORS configuration
-- Row Level Security (RLS) on Supabase
-- Firebase authentication
-
-## 🚧 Future Microservices
-
-The project structure is designed to support additional microservices:
-
-- `grademyprofAuth/` - Dedicated authentication service
-- `grademyprofAnalytics/` - Analytics and reporting
-- `grademyprofNotifications/` - Email/push notifications
-- And more...
-
-## 📝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 👥 Authors
-
-- Kaif Khan (@Koifish2004)
-
-## 🙏 Acknowledgments
-
-- BITS Pilani for the educational context
-- shadcn/ui for beautiful components
-- Supabase for backend infrastructure
+Kaif Khan (@Koifish2004)
