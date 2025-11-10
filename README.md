@@ -143,21 +143,6 @@ Open `http://localhost:5173` in your browser.
 - No user profile page to see all your reviews
 - No review voting or moderation system
 
-## Deployment
-
-This app is not currently deployed. To deploy:
-
-- **Frontend:** Vercel, Netlify, or similar
-- **Backend services:** Fly.io, Railway, Render, or any VPS
-- **Database:** Already hosted on Supabase
-
-Make sure to:
-
-1. Update CORS settings for your production domain
-2. Add your production domain to Firebase authorized domains
-3. Set all environment variables on your hosting platform
-4. Use proper secrets management (not `.env` files in production)
-
 ## Project Structure
 
 ```
