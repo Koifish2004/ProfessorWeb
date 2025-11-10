@@ -4,7 +4,6 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Label } from "../ui/label";
-import { Switch } from "../ui/switch";
 import { StarRating } from "../ui/star-rating";
 
 interface ReviewFormProps {
@@ -170,34 +169,6 @@ export function ReviewForm({
                 ({formData.rating}/5)
               </span>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Difficulty Level</Label>
-            <div className="flex items-center gap-2">
-              <StarRating
-                rating={formData.difficulty}
-                onRatingChange={(difficulty: number) =>
-                  setFormData({ ...formData, difficulty })
-                }
-                interactive={true}
-                color="orange"
-              />
-              <span className="text-sm text-gray-600">
-                ({formData.difficulty}/5)
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="would_take_again"
-              checked={formData.would_take_again}
-              onCheckedChange={(would_take_again: boolean) =>
-                setFormData({ ...formData, would_take_again })
-              }
-            />
-            <Label htmlFor="would_take_again">Would take again</Label>
           </div>
 
           <div className="space-y-2">

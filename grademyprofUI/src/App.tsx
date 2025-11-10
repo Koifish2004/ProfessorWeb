@@ -476,14 +476,6 @@ function App() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-300">
-                    <span>
-                      Difficulty: {professor.average_difficulty.toFixed(1)}/5
-                    </span>
-                    <span className="text-green-400">
-                      {professor.would_take_again_percent}% would take again
-                    </span>
-                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -504,30 +496,16 @@ function App() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="text-center">
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-600 text-white text-lg"
-                  >
-                    ★ {selectedProfessor.average_rating.toFixed(1)}
-                  </Badge>
-                  <p className="text-gray-300 text-sm mt-1">Overall Rating</p>
-                </div>
-                <div className="text-center">
-                  <Badge
-                    variant="outline"
-                    className="text-lg border-gray-500 text-white"
-                  >
-                    {selectedProfessor.average_difficulty.toFixed(1)}/5
-                  </Badge>
-                  <p className="text-gray-300 text-sm mt-1">Difficulty</p>
-                </div>
+              <div className="text-center mb-4">
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-600 text-white text-lg"
+                >
+                  ★ {selectedProfessor.average_rating.toFixed(1)}
+                </Badge>
+                <p className="text-gray-300 text-sm mt-1">Overall Rating</p>
               </div>
               <div className="text-center mb-4">
-                <p className="text-lg text-green-400 font-semibold">
-                  {selectedProfessor.would_take_again_percent}% would take again
-                </p>
                 <p className="text-gray-300 text-sm">
                   Based on {selectedProfessor.review_count} reviews
                 </p>
