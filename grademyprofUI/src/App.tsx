@@ -35,7 +35,9 @@ interface Review {
 }
 
 // API Configuration
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = import.meta.env.PROD
+  ? "https://kaifn8n.online/api"
+  : "http://localhost:4000/api";
 
 function App() {
   const [jwtToken, setJwtToken] = useState<string | null>(null);
@@ -131,7 +133,11 @@ function App() {
         if (val.isValid) {
           try {
             const idToken = await result.user.getIdToken();
-            const authResponse = await fetch("http://localhost:8080/login", {
+            const AUTH_URL = import.meta.env.PROD
+              ? "https://kaifn8n.online/auth/login"
+              : "http://localhost:8080/login";
+
+            const authResponse = await fetch(AUTH_URL, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

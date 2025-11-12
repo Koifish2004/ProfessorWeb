@@ -18,7 +18,7 @@ func init(){
 func main(){
 	r:=gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // Your React frontend
+		AllowOrigins:     []string{"http://localhost:5173", "https://kaifn8n.online"}, // Local dev + Production
         AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
         AllowHeaders:     []string{"Content-Type", "Authorization"},
         AllowCredentials: true,
