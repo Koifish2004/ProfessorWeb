@@ -18,7 +18,7 @@ func init(){
 func main(){
 	r:=gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://kaifn8n.online"}, // Local dev + Production
+		AllowOrigins:     []string{"http://localhost:5173", "http://192.168.2.3", "https://kaifn8n.online"}, // Local dev + Campus + Production
         AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
         AllowHeaders:     []string{"Content-Type", "Authorization"},
         AllowCredentials: true,

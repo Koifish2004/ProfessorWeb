@@ -83,7 +83,7 @@ func main() {
 
 	// CORS
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:5173,https://kaifn8n.online", // Local dev + Production
+		AllowOrigins: "http://localhost:5173,http://192.168.2.3,https://kaifn8n.online", // Local dev + Campus + Production
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	}))
