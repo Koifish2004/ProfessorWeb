@@ -37,7 +37,9 @@ interface ReviewData {
   comment: string;
 }
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = import.meta.env.PROD
+  ? "http://192.168.2.3:4000/api"
+  : "http://localhost:4000/api";
 
 export function ReviewForm({
   professorId,
