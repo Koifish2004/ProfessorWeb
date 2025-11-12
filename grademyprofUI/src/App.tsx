@@ -36,7 +36,7 @@ interface Review {
 
 // API Configuration
 const API_BASE_URL = import.meta.env.PROD
-  ? "https://kaifn8n.online/api"
+  ? "http://192.168.2.3:4000/api"
   : "http://localhost:4000/api";
 
 function App() {
@@ -134,7 +134,7 @@ function App() {
           try {
             const idToken = await result.user.getIdToken();
             const AUTH_URL = import.meta.env.PROD
-              ? "https://kaifn8n.online/auth/login"
+              ? "http://192.168.2.3:8080/login"
               : "http://localhost:8080/login";
 
             const authResponse = await fetch(AUTH_URL, {
