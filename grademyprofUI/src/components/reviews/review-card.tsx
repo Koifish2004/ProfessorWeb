@@ -4,6 +4,7 @@ import { StarRating } from "../ui/star-rating";
 
 interface Review {
   id: number;
+  user_email: string;
   student_name: string;
   rating: number;
   difficulty: number;
@@ -15,9 +16,15 @@ interface Review {
 
 interface ReviewCardProps {
   review: Review;
+  currentUserEmail?: string | null;
+  onDelete?: (reviewId: number) => void;
 }
 
-export function ReviewCard({ review }: ReviewCardProps) {
+export function ReviewCard({
+  review,
+  currentUserEmail,
+  onDelete,
+}: ReviewCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -25,6 +32,9 @@ export function ReviewCard({ review }: ReviewCardProps) {
       day: "numeric",
     });
   };
+
+  const isOwnReview =
+    currentUserEmail && review.user_email === currentUserEmail;
 
   return (
     <Card className="w-full bg-gray-800 border-gray-600">
@@ -43,11 +53,35 @@ export function ReviewCard({ review }: ReviewCardProps) {
                 >
                   {review.course}
                 </Badge>
+                {isOwnReview && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-600 text-white text-xs"
+                  >
+                    Your Review
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-gray-400">
                 {formatDate(review.created_at)}
               </p>
             </div>
+            {isOwnReview && onDelete && (
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this review?"
+                    )
+                  ) {
+                    onDelete(review.id);
+                  }
+                }}
+                className="text-red-400 hover:text-red-300 text-sm"
+              >
+                🗑️ Delete
+              </button>
+            )}
           </div>
 
           {/* Ratings */}

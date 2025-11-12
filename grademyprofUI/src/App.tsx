@@ -24,6 +24,7 @@ interface Professor {
 interface Review {
   id: number;
   professor_id: number;
+  user_email: string;
   student_name: string;
   rating: number;
   difficulty: number;
@@ -129,10 +130,14 @@ function App() {
 
         if (val.isValid) {
           try {
+            const idToken = await result.user.getIdToken();
             const authResponse = await fetch("http://localhost:8080/login", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email: userEmail }),
+              body: JSON.stringify({
+                email: userEmail,
+                firebase_token: idToken,
+              }),
             });
 
             if (authResponse.ok) {
@@ -266,6 +271,49 @@ function App() {
         await fetchProfessors(activeCampus); // Refresh professor list with updated stats
         checkUserExistingReview(selectedProfessor.id); // Re-check if user has reviewed
       }, 1000);
+    }
+  };
+
+  const deleteReview = async (reviewId: number) => {
+    if (!jwtToken || !selectedProfessor) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/professors/${selectedProfessor.id}/reviews/${reviewId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${jwtToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Delete failed:", errorData);
+        throw new Error(errorData.error || "Failed to delete review");
+      }
+
+      console.log("✅ Review deleted successfully");
+
+      // Immediately update local state to remove the review
+      setReviews(reviews.filter((r) => r.id !== reviewId));
+
+      // Then fetch updated data in the background
+      setTimeout(async () => {
+        await fetchReviews(selectedProfessor.id);
+        await fetchProfessors(activeCampus);
+        checkUserExistingReview(selectedProfessor.id);
+      }, 500);
+
+      alert("Review deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting review:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete review. Please try again."
+      );
     }
   };
 
@@ -597,7 +645,12 @@ function App() {
             ) : reviews.length > 0 ? (
               <div className="space-y-4">
                 {reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    currentUserEmail={user?.email}
+                    onDelete={deleteReview}
+                  />
                 ))}
               </div>
             ) : (

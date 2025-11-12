@@ -17,11 +17,18 @@ type User struct{
 
 
 func GenerateJWT(c *gin.Context){
-	var user User
-	 if err:=c.ShouldBindJSON(&user); err !=nil{
-		c.JSON(http.StatusBadRequest, gin.H{"error":"Email is required"})
+	// Get the verified email from context (set by VerifyFirebaseToken middleware)
+	verifiedEmail, exists := c.Get("verified_email")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error":"Email verification required"})
 		return
-	 }
+	}
+
+	email, ok := verifiedEmail.(string)
+	if !ok || email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error":"Invalid email"})
+		return
+	}
 
 	fmt.Println("Generating JWT Token")
 
@@ -33,7 +40,7 @@ func GenerateJWT(c *gin.Context){
 	}
 
 	token:=jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.Email,
+		"sub": email,
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour*24*30).Unix(),
 
@@ -47,7 +54,7 @@ func GenerateJWT(c *gin.Context){
 
 	c.JSON(http.StatusOK, gin.H{
 		"token" : tokenString,
-		"email" :user.Email,
+		"email" : email,
 	})
 
 

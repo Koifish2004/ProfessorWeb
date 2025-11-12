@@ -129,3 +129,4 @@ dev.sh
 grademyprofUI/.env
 grademyprofUI/.env.*
 !grademyprofUI/.env.example
+serviceAccountKey.json

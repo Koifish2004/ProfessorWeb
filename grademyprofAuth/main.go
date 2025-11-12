@@ -25,7 +25,7 @@ func main(){
 		
 	}))
 
-	r.POST("/login",middleware.RateLimiter(5, time.Minute), middleware.GenerateJWT)
+	r.POST("/login",middleware.RateLimiter(5, time.Minute),middleware.VerifyFirebaseToken, middleware.GenerateJWT)
 
 	r.GET("/verify-token", middleware.RequireAuthHeader, func(c *gin.Context) {
         email, _ := c.Get("user_email")

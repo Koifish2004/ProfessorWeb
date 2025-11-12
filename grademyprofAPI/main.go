@@ -77,7 +77,7 @@ func main() {
 		log.Fatal("SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file")
 	}
 
-	log.Printf("✅ Connected to Supabase: %s", supabase.URL)
+	log.Printf("Connected to Supabase: %s", supabase.URL)
 
 	app := fiber.New()
 
@@ -140,6 +140,7 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hello World"})
 	})
+	app.Delete("/api/professors/:id/reviews/:reviewId", middleware.AuthMiddleware, deleteReview)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -149,6 +150,83 @@ func main() {
 	log.Printf("Server starting on port %s", port)
 	log.Fatal(app.Listen(":" + port))
 }
+
+
+func deleteReview(c *fiber.Ctx) error{
+
+	professorID :=c.Params("id")
+	reviewID := c.Params("reviewId")
+
+	userEmail := c.Locals("user_email")
+	if userEmail == nil{
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized",})
+	}
+
+	if reviewID == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Review ID is required"})
+	}
+
+	checkURL := fmt.Sprintf("%s/rest/v1/reviews?id=eq.%s&user_email=eq.%s", supabase.URL, reviewID, userEmail)
+
+	checkReq, err := http.NewRequest("GET", checkURL, nil)
+	if err!=nil {
+		return c.Status(500).JSON(fiber.Map{"error":"Failed to create request"})
+	}
+
+	checkReq.Header.Set("apikey", supabase.APIKey)
+	checkReq.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+
+	client := &http.Client{}
+	checkResp, err :=client.Do(checkReq)
+	if err != nil{
+		return c.Status(500).JSON(fiber.Map{
+			"error":"Failed to verify review",
+		})
+	}
+
+	defer checkResp.Body.Close()
+
+	checkBody, _ :=io.ReadAll(checkResp.Body)
+	
+	var existingReviews []Review 
+	json.Unmarshal(checkBody, &existingReviews)
+
+	if len(existingReviews) == 0{
+		return c.Status(404).JSON(fiber.Map{
+			"error": "Review not found or you don't have permission to delete it",
+		})
+	}
+
+	deleteURL := fmt.Sprintf("%s/rest/v1/reviews?id=eq.%s", supabase.URL, reviewID)
+
+    deleteReq, err := http.NewRequest("DELETE", deleteURL, nil)
+    if err != nil {
+        return c.Status(500).JSON(fiber.Map{"error": "Failed to create delete request"})
+    }
+
+    deleteReq.Header.Set("apikey", supabase.APIKey)
+    deleteReq.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+
+deleteResp, err := client.Do(deleteReq)
+    if err != nil {
+        return c.Status(500).JSON(fiber.Map{"error": "Failed to delete review"})
+    }
+    defer deleteResp.Body.Close()
+
+ if deleteResp.StatusCode != 204 && deleteResp.StatusCode != 200 {
+        deleteBody, _ := io.ReadAll(deleteResp.Body)
+        log.Printf("Supabase API returned status %d: %s", deleteResp.StatusCode, string(deleteBody))
+        return c.Status(500).JSON(fiber.Map{"error": "Failed to delete review"})
+    }
+
+	go updateProfessorStats(professorID)
+
+	return c.JSON(fiber.Map{
+        "message": "Review deleted successfully",
+    })
+}
+
+
 
 func getProfessors(c *fiber.Ctx) error {
 	campus := c.Query("campus", "pilani") 
@@ -441,10 +519,8 @@ func updateReview(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to read response"})
 	}
 
-	log.Printf("📡 Supabase Response Status: %d, Body: %s", resp.StatusCode, string(body))
-
 	if resp.StatusCode != 200 {
-		log.Printf("❌ Supabase API returned status %d: %s", resp.StatusCode, string(body))
+		log.Printf("Supabase API returned status %d: %s", resp.StatusCode, string(body))
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to update review"})
 	}
 
@@ -452,8 +528,6 @@ func updateReview(c *fiber.Ctx) error {
 	if err := json.Unmarshal(body, &updatedReview); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to parse response"})
 	}
-
-	log.Printf("📝 Supabase returned %d reviews", len(updatedReview))
 
 	if len(updatedReview) == 0 {
 		return c.Status(404).JSON(fiber.Map{"error": "Review not found"})
@@ -503,7 +577,33 @@ func updateProfessorStats(professorID string) {
 		return
 	}
 
-	if len(reviews) == 0 {
+	reviewCount := len(reviews)
+	log.Printf("📊 Updating stats for professor %s - Found %d reviews", professorID, reviewCount)
+
+	// If no reviews, reset stats to defaults
+	if reviewCount == 0 {
+		updateData := map[string]interface{}{
+			"average_rating":           0.0,
+			"review_count":             0,
+			"average_difficulty":       0.0,
+			"would_take_again_percent": 0,
+		}
+
+		jsonData, _ := json.Marshal(updateData)
+		updateURL := fmt.Sprintf("%s/rest/v1/professor?id=eq.%s", supabase.URL, professorID)
+		updateReq, _ := http.NewRequest("PATCH", updateURL, strings.NewReader(string(jsonData)))
+		updateReq.Header.Set("apikey", supabase.APIKey)
+		updateReq.Header.Set("Authorization", "Bearer "+supabase.APIKey)
+		updateReq.Header.Set("Content-Type", "application/json")
+
+		updateResp, err := client.Do(updateReq)
+		if err != nil {
+			log.Printf("Failed to reset professor stats: %v", err)
+			return
+		}
+		defer updateResp.Body.Close()
+
+		log.Printf("Reset professor %s stats to 0 (no reviews)", professorID)
 		return
 	}
 
@@ -519,7 +619,7 @@ func updateProfessorStats(professorID string) {
 		}
 	}
 
-	reviewCount := len(reviews)
+	reviewCount = len(reviews)
 	averageRating := totalRating / float64(reviewCount)
 	averageDifficulty := totalDifficulty / float64(reviewCount)
 	wouldTakeAgainPercent := int((float64(wouldTakeAgainCount) / float64(reviewCount)) * 100)
@@ -561,6 +661,4 @@ func updateProfessorStats(professorID string) {
 		log.Printf("Failed to update professor stats, status %d: %s", updateResp.StatusCode, string(updateBody))
 		return
 	}
-
-	log.Printf("Updated professor %s reviews=%d", professorID, reviewCount)
 }
