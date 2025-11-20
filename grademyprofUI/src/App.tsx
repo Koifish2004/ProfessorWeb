@@ -35,9 +35,7 @@ interface Review {
 }
 
 // API Configuration
-const API_BASE_URL = import.meta.env.PROD
-  ? "http://192.168.2.3:4000/api"
-  : "http://localhost:4000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 function App() {
   const [jwtToken, setJwtToken] = useState<string | null>(null);
@@ -133,9 +131,7 @@ function App() {
         if (val.isValid) {
           try {
             const idToken = await result.user.getIdToken();
-            const AUTH_URL = import.meta.env.PROD
-              ? "http://192.168.2.3:8080/login"
-              : "http://localhost:8080/login";
+            const AUTH_URL = import.meta.env.VITE_AUTH_URL || "http://localhost:8080/login";
 
             const authResponse = await fetch(AUTH_URL, {
               method: "POST",

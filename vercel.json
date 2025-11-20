@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd grademyprofUI && npm install && npm run build",
+  "outputDirectory": "grademyprofUI/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"log"
+	"os"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -15,7 +16,16 @@ var firebaseApp *firebase.App
 var firebaseAuth *auth.Client
 
 func InitFirebase(serviceAccountPath string) error{
-	opt:= option.WithCredentialsFile(serviceAccountPath)
+	var opt option.ClientOption
+	
+	// Check if Firebase credentials are in environment variable (for Railway)
+	if credJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT_KEY"); credJSON != "" {
+		opt = option.WithCredentialsJSON([]byte(credJSON))
+	} else {
+		// Fall back to file path (for local development)
+		opt = option.WithCredentialsFile(serviceAccountPath)
+	}
+	
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err!= nil{
 		return err
